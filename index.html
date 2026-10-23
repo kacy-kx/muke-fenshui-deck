@@ -40,9 +40,12 @@
 
 /* ================= 2. 舞台与翻页 ================= */
 *{margin:0;padding:0;box-sizing:border-box}
-html,body{height:100%;background:#241a12;overflow:hidden;font-family:var(--sans);color:var(--ink)}
-#stage{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
-#deck{position:relative;width:1280px;height:720px;transform-origin:center center;
+html,body{height:100%;background:#241a12;overflow:hidden;font-family:var(--sans);color:var(--ink);
+  -webkit-text-size-adjust:100%;text-size-adjust:100%}
+#stage{position:fixed;inset:0;overflow:hidden}
+/* 绝对定位 + translate 居中：避免在 flex 容器里被压缩（手机窄屏会挤成 119px 宽导致错位） */
+#deck{position:absolute;left:50%;top:50%;width:1280px;height:720px;flex:none;
+  transform:translate(-50%,-50%) scale(1);transform-origin:center center;
   box-shadow:0 24px 80px rgba(0,0,0,.55)}
 .slide{position:absolute;inset:0;background:var(--paper);overflow:hidden;
   opacity:0;visibility:hidden;transition:opacity .38s ease;pointer-events:none}
@@ -175,11 +178,16 @@ html,body{height:100%;background:#241a12;overflow:hidden;font-family:var(--sans)
 #hud .nav:hover{background:rgba(201,183,154,.15)}
 #bar{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,var(--water),var(--water-l));
   width:0;z-index:60;transition:width .3s}
+/* 手机竖屏提示（横屏或大屏自动隐藏） */
+#rotate{display:none;position:fixed;left:0;right:0;bottom:10px;text-align:center;z-index:30;
+  font-size:11px;letter-spacing:.18em;color:rgba(246,241,230,.62);pointer-events:none}
+@media (orientation:portrait) and (max-width:700px){ #rotate{display:block} }
 @media print{ .slide{position:relative;opacity:1;visibility:visible;page-break-after:always} }
 </style>
 </head>
 <body>
 <div id="bar"></div>
+<div id="rotate">↻ 横屏观看体验更佳</div>
 <div id="stage"><div id="deck">
 
 <!-- ═════════════════ P01 封面 ═════════════════ -->
@@ -1368,12 +1376,18 @@ PASS&nbsp;&nbsp;F1–F2&nbsp;&nbsp;逐日账本 · 全数值无 NaN<br>
     a.addEventListener('click', function (e) { e.preventDefault(); go(parseInt(a.dataset.go, 10)); });
   });
 
-  /* 16:9 等比缩放适配任意窗口 */
+  /* 16:9 等比缩放适配任意窗口（含手机竖屏/横屏） */
   function fit() {
-    var s = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
-    deck.style.transform = 'scale(' + s + ')';
+    var w = document.documentElement.clientWidth || window.innerWidth;
+    var h = document.documentElement.clientHeight || window.innerHeight;
+    if (!w || !h) return;
+    var s = Math.min(w / 1280, h / 720);
+    deck.style.transform = 'translate(-50%,-50%) scale(' + s + ')';
   }
   window.addEventListener('resize', fit);
+  window.addEventListener('orientationchange', fit);
+  document.addEventListener('fullscreenchange', function () { setTimeout(fit, 60); });
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', fit);
   fit();
   go(0);
 })();
